@@ -1,0 +1,33 @@
+# YSA modeli tahmin yapıyor
+y_pred_probs = model.predict(X_test)
+y_pred = np.argmax(y_pred_probs, axis=1)  # Çünkü softmax çıktısı
+from sklearn.metrics import precision_recall_fscore_support
+
+# Precision, Recall, F1-Score hesapla
+precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average=None)
+
+# Her sınıf için isimlendirme
+classes = ['Düşük Kalite (0)', 'Orta Kalite (1)', 'Yüksek Kalite (2)']
+
+# Tüm sonuçları DataFrame'e koy
+import pandas as pd
+
+metrics_df = pd.DataFrame({
+    'Precision': precision,
+    'Recall': recall,
+    'F1-Score': f1
+}, index=classes)
+
+print(metrics_df)
+import matplotlib.pyplot as plt
+
+# Grafik ayarları
+metrics_df.plot(kind='bar', figsize=(10,6))
+plt.title('Her Sınıf İçin Precision - Recall - F1-Score')
+plt.ylabel('Skor')
+plt.ylim(0, 1)
+plt.grid(axis='y')
+plt.xticks(rotation=45)
+plt.legend(loc='lower right')
+plt.show()
+    
