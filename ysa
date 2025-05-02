@@ -1,0 +1,40 @@
+# Tensorflow ve Keras import
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+
+# YSA Modeli
+model = Sequential()
+model.add(Dense(128, activation='relu', input_shape=(X_train.shape[1],)))  # 128 nöronlu gizli katman
+model.add(Dropout(0.3))  # Overfitting'e karşı dropout
+model.add(Dense(64, activation='relu'))  # ikinci gizli katman
+model.add(Dropout(0.3))
+model.add(Dense(3, activation='softmax'))  # 3 sınıf için çıkış katmanı
+
+# Derleme
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Eğitme
+history = model.fit(X_train, y_train, epochs=30, batch_size=32, validation_data=(X_test, y_test))
+import matplotlib.pyplot as plt
+
+# Doğruluk grafiği
+plt.figure(figsize=(12,5))
+plt.plot(history.history['accuracy'], label='Eğitim Doğruluğu')
+plt.plot(history.history['val_accuracy'], label='Doğrulama Doğruluğu')
+plt.title('YSA Modeli Doğruluk Eğrisi')
+plt.xlabel('Epoch')
+plt.ylabel('Doğruluk')
+plt.legend()
+plt.grid()
+plt.show()
+
+# Kayıp (Loss) grafiği
+plt.figure(figsize=(12,5))
+plt.plot(history.history['loss'], label='Eğitim Kaybı')
+plt.plot(history.history['val_loss'], label='Doğrulama Kaybı')
+plt.title('YSA Modeli Kayıp Eğrisi')
+plt.xlabel('Epoch')
+plt.ylabel('Kayıp')
+plt.legend()
+plt.grid()
+plt.show()
