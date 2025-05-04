@@ -1,4 +1,4 @@
-# 🔧 Gerekli Kütüphaneler
+# Gerekli Kütüphaneler
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ from xgboost import XGBClassifier
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 
-# 📥 Veri Yükleme ve Birleştirme
+# Veri Yükleme ve Birleştirme
 red = pd.read_csv("winequality-red.csv", sep=";")
 white = pd.read_csv("winequality-white.csv", sep=";")
 red['color'] = 0
@@ -31,7 +31,7 @@ white['color'] = 1
 data = pd.concat([red, white], axis=0)
 
 
-# 🎯 Hedef Sınıfların Etiketlenmesi
+# Hedef Sınıfların Etiketlenmesi
 def quality_label(q):
     if q <= 4:
         return 0
@@ -145,7 +145,7 @@ plt.legend(loc='lower right')
 plt.savefig("class_metrics.png", dpi=300, bbox_inches='tight')
 plt.show()
 
-# 🧩 Confusion Matrix
+# Confusion Matrix
 cm = confusion_matrix(y_test, y_pred)
 plt.figure(figsize=(6, 5))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
