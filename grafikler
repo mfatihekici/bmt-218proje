@@ -1,0 +1,203 @@
+# 🔧 Gerekli Kütüphaneler
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+
+warnings.filterwarnings('ignore')
+
+# Makine Öğrenmesi Modelleri
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, accuracy_score, precision_recall_fscore_support, confusion_matrix
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+
+# Tensorflow & Keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+
+# 📥 Veri Yükleme ve Birleştirme
+red = pd.read_csv("winequality-red.csv", sep=";")
+white = pd.read_csv("winequality-white.csv", sep=";")
+red['color'] = 0
+white['color'] = 1
+data = pd.concat([red, white], axis=0)
+
+
+# 🎯 Hedef Sınıfların Etiketlenmesi
+def quality_label(q):
+    if q <= 4:
+        return 0
+    elif q <= 6:
+        return 1
+    else:
+        return 2
+
+
+data['quality'] = data['quality'].apply(quality_label)
+
+# Özellik ve Hedef Ayırma
+X = data.drop('quality', axis=1)
+y = data['quality']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+
+#  Ölçeklendirme
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+#  ML Modelleri Eğitimi ve Değerlendirmesi
+models = {
+    "Decision Tree": DecisionTreeClassifier(),
+    "Random Forest": RandomForestClassifier(),
+    "KNN": KNeighborsClassifier(),
+    "Logistic Regression": LogisticRegression(),
+    "Naive Bayes": GaussianNB(),
+    "SVM": SVC(),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
+}
+results = {}
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    results[name] = acc
+    print(f"Model: {name}")
+    print("Accuracy:", round(acc, 4))
+    print(classification_report(y_test, y_pred))
+    print("=" * 50)
+
+#  Doğruluk Görselleştirme
+plt.figure(figsize=(12, 6))
+ax = sns.barplot(x=list(results.keys()), y=list(results.values()))
+plt.title('Modellere Göre Doğruluk Oranları')
+plt.ylabel('Doğruluk')
+plt.xticks(rotation=45)
+plt.ylim(0, 1)
+plt.grid()
+for p in ax.patches:
+    ax.annotate(f'{p.get_height():.2f}',
+                (p.get_x() + p.get_width() / 2., p.get_height()),
+                ha='center', va='bottom')
+plt.savefig("model_dogruluk.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+#  Yapay Sinir Ağı (YSA)
+model = Sequential()
+model.add(Dense(128, activation='relu', input_shape=(X_train.shape[1],)))
+model.add(Dropout(0.3))
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(3, activation='softmax'))
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+history = model.fit(X_train, y_train, epochs=30, batch_size=32, validation_data=(X_test, y_test))
+
+#  YSA Doğruluk ve Kayıp Eğrileri
+plt.figure(figsize=(12, 5))
+plt.plot(history.history['accuracy'], label='Eğitim Doğruluğu')
+plt.plot(history.history['val_accuracy'], label='Doğrulama Doğruluğu')
+plt.title('YSA Modeli Doğruluk Eğrisi')
+plt.xlabel('Epoch')
+plt.ylabel('Doğruluk')
+plt.legend()
+plt.grid()
+plt.savefig("ysa_accuracy.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+plt.figure(figsize=(12, 5))
+plt.plot(history.history['loss'], label='Eğitim Kaybı')
+plt.plot(history.history['val_loss'], label='Doğrulama Kaybı')
+plt.title('YSA Modeli Kayıp Eğrisi')
+plt.xlabel('Epoch')
+plt.ylabel('Kayıp')
+plt.legend()
+plt.grid()
+plt.savefig("ysa_accuracy1.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+# Precision, Recall, F1
+y_pred = np.argmax(model.predict(X_test), axis=1)
+precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average=None)
+classes = ['Düşük Kalite (0)', 'Orta Kalite (1)', 'Yüksek Kalite (2)']
+metrics_df = pd.DataFrame({
+    'Precision': precision,
+    'Recall': recall,
+    'F1-Score': f1
+}, index=classes)
+print(metrics_df)
+
+ax = metrics_df.plot(kind='bar', figsize=(10, 6))
+for container in ax.containers:
+    ax.bar_label(container, fmt='%.2f')
+plt.title('Her Sınıf İçin Precision - Recall - F1-Score')
+plt.ylabel('Skor')
+plt.ylim(0, 1)
+plt.grid(axis='y')
+plt.xticks(rotation=45)
+plt.legend(loc='lower right')
+plt.savefig("class_metrics.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+# 🧩 Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['Düşük', 'Orta', 'Yüksek'],
+            yticklabels=['Düşük', 'Orta', 'Yüksek'])
+plt.xlabel("Tahmin")
+plt.ylabel("Gerçek")
+plt.title("Confusion Matrix (YSA)")
+plt.savefig("correlation_matrix.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+#  Özellik Önem Grafiği
+rf = RandomForestClassifier()
+rf.fit(X_train, y_train)
+feat_importance = pd.Series(rf.feature_importances_, index=X.columns).sort_values()
+plt.figure(figsize=(10, 6))
+ax = feat_importance.plot(kind='barh')
+plt.title("Özelliklerin Önem Derecesi (Random Forest)")
+plt.xlabel("Öneme Skoru")
+plt.grid()
+for i, (value, name) in enumerate(zip(feat_importance, feat_importance.index)):
+    plt.text(value + 0.001, i, f"{value:.3f}", va='center')
+plt.savefig("class_distribution.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+#  Korelasyon Matrisi
+plt.figure(figsize=(12, 10))
+sns.heatmap(data.corr(), annot=True, fmt=".2f", cmap="coolwarm")
+plt.title("Özellikler Arası Korelasyon Matrisi")
+plt.savefig("confusion_matrix.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+# Literatür Karşılaştırması
+models = ['Decision Tree', 'Random Forest', 'KNN', 'Regression', 'Naive Bayes', 'SVM', 'XGBoost']
+scores = [0.79, 0.85, 0.79, 0.78, 0.68, 0.79, 0.84]
+literature_scores = [0.85, 0.95, 0.91, 0.80, 0.82, 0.96, 0.95]
+x = range(len(models))
+plt.figure(figsize=(12, 6))
+bars1 = plt.bar(x, scores, width=0.4, label='Bu Çalışma', align='center')
+bars2 = plt.bar([i + 0.4 for i in x], literature_scores, width=0.4, label='Literatür', align='center')
+plt.xticks([i + 0.2 for i in x], models, rotation=45)
+plt.ylabel('Doğruluk')
+plt.ylim(0.6, 1.05)
+plt.title('Makine Öğrenimi Modellerinin Doğruluk Karşılaştırması')
+plt.legend()
+plt.grid(axis='y')
+for bar in bars1:
+    yval = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width() / 2, yval + 0.01, f"{yval:.2f}", ha='center')
+for bar in bars2:
+    yval = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width() / 2, yval + 0.01, f"{yval:.2f}", ha='center')
+plt.tight_layout()
+plt.savefig("dogruluk_karsilastirma_grafigi_sayili.png", dpi=300)
+plt.show()
